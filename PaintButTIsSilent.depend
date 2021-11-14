@@ -1,0 +1,5 @@
+# depslib dependency file v1.0
+1636899513 source:c:\users\areus\desktop\areus files\univero failai\programavimo pagrindai\projektas\paintbuttissilent\main.c
+	<windows.h>
+	<winuser.h>
+
