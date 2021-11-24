@@ -144,11 +144,11 @@ int editImage(POINT point)
     if (!GetDIBits(hDc, hImage, 0, 0, NULL, &bi, DIB_RGB_COLORS))
         return 0;
     //Checking and adjusting header info:
-    if (bi.bmiHeader.biBitCount!=32)
+    /*if (bi.bmiHeader.biBitCount!=32)
 	{
 		printf("%d", bi.bmiHeader.biBitCount);
 		return 0;
-	}
+	}*/
 	if(bi.bmiHeader.biCompression != BI_RGB && bi.bmiHeader.biCompression != BI_BITFIELDS)printf("SUS");
 	bi.bmiHeader.biCompression = BI_RGB;
     //Allocating required memory based on header provided info:
@@ -163,11 +163,9 @@ int editImage(POINT point)
         return 0;
     }
     //Changing BITMAP data:
-    printf("%c", *bits);
-    printf("4");
+    printf("%d %d %d\n", bits[(point.x + point.y*bmpwidth)*3], bits[(point.x + point.y*bmpwidth)*3+1], bits[(point.x+ point.y*bmpwidth)*3+2]);
     //Updating BITMAP data:
     SetDIBits( hDc, hImage, 0, bmpheight, bits, &bi, DIB_RGB_COLORS );
-    printf("5");
     return 1;
 }
 
