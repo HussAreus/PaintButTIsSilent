@@ -33,7 +33,7 @@ char *bits = NULL;
 int drawing = 0;
 //Paint style
 int type = PAINT_BRUSH;
-int paintWidth = 2;
+int paintWidth = 10;
 RGBCOLOR paintColor;
 //Main Window
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow)
@@ -69,9 +69,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
     height = GetSystemMetrics(SM_CYFULLSCREEN);
     width/=2;
     height*=0.5;
-    paintColor.r = 255;
+    paintColor.r = 0;
     paintColor.g = 255;
-    paintColor.b = 0;
+    paintColor.b = 255;
 
     // Step 2: Creating the Window
     hwnd = CreateWindowEx(WS_EX_ACCEPTFILES, MainWindowClass,"Paint, but \"t\" is silent",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT, CW_USEDEFAULT, (height*2)+200, (height*1.5)+20, NULL, NULL, hInstance, NULL);
@@ -156,8 +156,12 @@ void draw(int coord)
         {
             paint(coord+4*i);
             paint(coord-4*i);
+            paint(coord-bmpwidth*4*i+i*4);
+            paint(coord-bmpwidth*4*i-i*4);
             paint(coord-bmpwidth*4*i);
             paint(coord+bmpwidth*4*i);
+            paint(coord+bmpwidth*4*i+i*4);
+            paint(coord+bmpwidth*4*i-i*4);
         }
     }
 
