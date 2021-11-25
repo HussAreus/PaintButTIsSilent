@@ -3,8 +3,16 @@
 #include <stdio.h>
 
 //Constants
-#define NEW_FILE 1
+#define NEW_FILE 9
 #define CHANGE_TITLE 2
+#define RED 3
+#define GREEN 4
+#define BLUE 5
+#define YELLOW 6
+#define CYAN 7
+#define PURPLE 8
+#define ERRASER 10
+#define BLACK 11
 #define PAINT_BRUSH 1
 // Function Declarations
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -127,8 +135,65 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     SetWindowTextW(hwnd, L"untitled.bmp");
                     break;
                 }
+                case RED:
+                {
+                    paintColor.r = 255;
+                    paintColor.g = 0;
+                    paintColor.b = 0;
+                    break;
+                }
+                case GREEN:
+                {
+                    paintColor.r = 0;
+                    paintColor.g = 255;
+                    paintColor.b = 0;
+                    break;
+                }
+                case BLUE:
+                {
+                    paintColor.r = 0;
+                    paintColor.g = 0;
+                    paintColor.b = 255;
+                    break;
+                }
+                case YELLOW:
+                {
+                    paintColor.r = 255;
+                    paintColor.g = 255;
+                    paintColor.b = 0;
+                    break;
+                }
+                case CYAN:
+                {
+                    paintColor.r = 0;
+                    paintColor.g = 255;
+                    paintColor.b = 255;
+                    break;
+                }
+                case PURPLE:
+                {
+                    paintColor.r = 255;
+                    paintColor.g = 0;
+                    paintColor.b = 255;
+                    break;
+                }
+                case BLACK:
+                {
+                    paintColor.r = 0;
+                    paintColor.g = 0;
+                    paintColor.b = 0;
+                    break;
+                }
+                case ERRASER:
+                {
+                    paintColor.r = 255;
+                    paintColor.g = 255;
+                    paintColor.b = 255;
+                    break;
+                }
                 default:break;
             }
+            break;
         }
         case WM_CREATE:{
             newImage();
@@ -144,9 +209,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 void draw(int coord)
 {
     void paint(int coord){
-        bits[coord]=paintColor.b;
-        bits[coord+1]=paintColor.g;
-        bits[coord+2]=paintColor.r;
+        if(coord<=bmpheight*bmpwidth*4&&coord>=0){
+            bits[coord]=paintColor.b;
+            bits[coord+1]=paintColor.g;
+            bits[coord+2]=paintColor.r;
+        }
     }
     switch(type)
     {
@@ -156,12 +223,16 @@ void draw(int coord)
         {
             paint(coord+4*i);
             paint(coord-4*i);
-            paint(coord-bmpwidth*4*i+i*4);
-            paint(coord-bmpwidth*4*i-i*4);
             paint(coord-bmpwidth*4*i);
             paint(coord+bmpwidth*4*i);
-            paint(coord+bmpwidth*4*i+i*4);
-            paint(coord+bmpwidth*4*i-i*4);
+            for(int j=1; j<(paintWidth-i); j++)
+            {
+                paint(coord-bmpwidth*4*i+j*4);
+                paint(coord-bmpwidth*4*i-j*4);
+                paint(coord+bmpwidth*4*i-j*4);
+                paint(coord+bmpwidth*4*i+j*4);
+            }
+
         }
     }
 
@@ -222,6 +293,14 @@ void newMenu(HWND hwnd)
     HMENU hFileMenu = CreateMenu();
     AppendMenu(hFileMenu, MF_STRING, NEW_FILE, "New");
     AppendMenu(hFileMenu, MF_STRING, CHANGE_TITLE, "Rename");
+    AppendMenu(hFileMenu, MF_STRING, RED, "Red");
+    AppendMenu(hFileMenu, MF_STRING, GREEN, "Green");
+    AppendMenu(hFileMenu, MF_STRING, BLUE, "Blue");
+    AppendMenu(hFileMenu, MF_STRING, YELLOW, "Yellow");
+    AppendMenu(hFileMenu, MF_STRING, CYAN, "Cyan");
+    AppendMenu(hFileMenu, MF_STRING, PURPLE, "Purple");
+    AppendMenu(hFileMenu, MF_STRING, BLACK, "Black");
+    AppendMenu(hFileMenu, MF_STRING, ERRASER, "Erraser");
 
     AppendMenu(hmenu, MF_POPUP, (UINT_PTR)hFileMenu, "File");
 
