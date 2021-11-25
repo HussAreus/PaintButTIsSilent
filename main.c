@@ -5,23 +5,33 @@
 //Constants
 #define NEW_FILE 1
 #define CHANGE_TITLE 2
-
+#define PAINT_BRUSH 1
 // Function Declarations
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void newMenu(HWND hwnd);
 void newPage(HWND hwnd);
-void newImage();
+int newImage();
 int editImage();
+void draw(int coord);
 
 // Global variables
-HWND hBitmap ;
+//Main Window values
 HMENU hmenu;
-HBITMAP hImage;
 HINSTANCE hInst;
 HDC hDc;
 POINT point;
-COLORREF paintColor = 0x00FFFFFF;
-int width, height, bmpwidth=500, bmpheight=500;
+int width, height;
+//Bitmap variables
+HWND hBitmap ;
+HBITMAP hImage;
+BITMAPINFO bi;
+int bmpwidth=500, bmpheight=500;
+char *bits = NULL;
+int drawing = 0;
+//Paint style
+int type = PAINT_BRUSH;
+int paintWidth = 2;
+
 //Main Window
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow)
 {
@@ -84,14 +94,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     GetCursorPos(&point);
     ScreenToClient(hBitmap, &point);
+    if(drawing && point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight){
+        editImage(point);
+        SendMessageW(hBitmap, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
+    }
     switch(msg)
     {
         case WM_LBUTTONDOWN:{
-            if(point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight)
-            {
-                editImage(point);
-                //UpdateWindow(hBitmap);
+            if(point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight)drawing = 1;
+            break;
             }
+        case WM_LBUTTONUP:{
+            drawing = 0;
+            break;
         }
         case WM_COMMAND:{
             switch(wParam)
@@ -106,26 +121,40 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     SetWindowTextW(hwnd, L"untitled.bmp");
                     break;
                 }
+                default:break;
             }
-            break;
         }
         case WM_CREATE:{
-            newImage();
+            printf("%d\n", newImage());
             newMenu(hwnd);
             newPage(hwnd);
-            break;
-        }
-        case WM_CLOSE:{
-            DestroyWindow(hwnd);
-            break;
-        }
-        case WM_DESTROY:{
-            PostQuitMessage(0);
             break;
         }
         default:return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     return 0;
+}
+
+void draw(int coord)
+{
+    void paint(coord){
+        bits[coord]=0;
+        bits[coord+1]=0;
+        bits[coord+2]=0;
+    }
+    switch(type)
+    {
+    case PAINT_BRUSH:
+        paint(coord);
+        for(int i=1; i<paintWidth; i++)
+        {
+            paint(coord+4*i);
+            paint(coord-4*i);
+            paint(coord-bmpwidth*4*i);
+            paint(coord+bmpwidth*4*i);
+        }
+    }
+
 }
 
 void newPage(HWND hwnd)
@@ -136,19 +165,31 @@ void newPage(HWND hwnd)
 
 int editImage(POINT point)
 {
-    char *bits = NULL;
-    BITMAPINFO bi;
+    int coord=(point.x + point.y*bmpwidth)*4;
+    draw(coord);
+    SetDIBits( hDc, hImage, 0, bmpheight, bits, &bi, DIB_RGB_COLORS );
+    return 1;
+}
+
+int newImage()
+{
+    hDc = CreateCompatibleDC (NULL);
+    if(!hDc)printf("No HDC");
+
+    hImage = (HBITMAP)LoadImageW(NULL, L"default.bmp", IMAGE_BITMAP, bmpwidth, bmpheight, LR_LOADFROMFILE);
+    if(!hImage)printf("No IMAGE");
+    //Setting basic header info.
     ZeroMemory(&bi, sizeof(BITMAPINFO));
     bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     //Getting header info for BITMAP:
     if (!GetDIBits(hDc, hImage, 0, 0, NULL, &bi, DIB_RGB_COLORS))
         return 0;
     //Checking and adjusting header info:
-    /*if (bi.bmiHeader.biBitCount!=32)
+    if (bi.bmiHeader.biBitCount!=32)
 	{
 		printf("%d", bi.bmiHeader.biBitCount);
 		return 0;
-	}*/
+	}
 	if(bi.bmiHeader.biCompression != BI_RGB && bi.bmiHeader.biCompression != BI_BITFIELDS)printf("SUS");
 	bi.bmiHeader.biCompression = BI_RGB;
     //Allocating required memory based on header provided info:
@@ -162,20 +203,7 @@ int editImage(POINT point)
         free( bits );
         return 0;
     }
-    //Changing BITMAP data:
-    printf("%d %d %d\n", bits[(point.x + point.y*bmpwidth)*3], bits[(point.x + point.y*bmpwidth)*3+1], bits[(point.x+ point.y*bmpwidth)*3+2]);
-    //Updating BITMAP data:
-    SetDIBits( hDc, hImage, 0, bmpheight, bits, &bi, DIB_RGB_COLORS );
     return 1;
-}
-
-void newImage()
-{
-    hDc = CreateCompatibleDC (NULL);
-    if(!hDc)printf("No HDC");
-
-    hImage = (HBITMAP)CreateCompatibleBitmap(hDc, bmpwidth, bmpheight);
-    if(!hImage)printf("No IMAGE");
 }
 
 void newMenu(HWND hwnd)
