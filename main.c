@@ -283,6 +283,7 @@ int newImage()
         free( bits );
         return 0;
     }
+    SendMessageW(hBitmap, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
     return 1;
 }
 
