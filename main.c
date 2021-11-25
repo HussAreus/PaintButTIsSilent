@@ -14,6 +14,9 @@ int newImage();
 int editImage();
 void draw(int coord);
 
+typedef struct tagRGB{
+    char r, g, b;
+} RGBCOLOR;
 // Global variables
 //Main Window values
 HMENU hmenu;
@@ -31,7 +34,7 @@ int drawing = 0;
 //Paint style
 int type = PAINT_BRUSH;
 int paintWidth = 2;
-
+RGBCOLOR paintColor;
 //Main Window
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow)
 {
@@ -66,6 +69,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
     height = GetSystemMetrics(SM_CYFULLSCREEN);
     width/=2;
     height*=0.5;
+    paintColor.r = 255;
+    paintColor.g = 255;
+    paintColor.b = 0;
 
     // Step 2: Creating the Window
     hwnd = CreateWindowEx(WS_EX_ACCEPTFILES, MainWindowClass,"Paint, but \"t\" is silent",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT, CW_USEDEFAULT, (height*2)+200, (height*1.5)+20, NULL, NULL, hInstance, NULL);
@@ -111,9 +117,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_COMMAND:{
             switch(wParam)
             {
-                case 1:
+                case NEW_FILE:
                 {
-                    MessageBeep(0xFFFFFFFF);
+                    newImage();
                     break;
                 }
                 case CHANGE_TITLE:
@@ -125,7 +131,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             }
         }
         case WM_CREATE:{
-            printf("%d\n", newImage());
+            newImage();
             newMenu(hwnd);
             newPage(hwnd);
             break;
@@ -137,10 +143,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 void draw(int coord)
 {
-    void paint(coord){
-        bits[coord]=0;
-        bits[coord+1]=0;
-        bits[coord+2]=0;
+    void paint(int coord){
+        bits[coord]=paintColor.b;
+        bits[coord+1]=paintColor.g;
+        bits[coord+2]=paintColor.r;
     }
     switch(type)
     {
@@ -165,7 +171,7 @@ void newPage(HWND hwnd)
 
 int editImage(POINT point)
 {
-    int coord=(point.x + point.y*bmpwidth)*4;
+    int coord=(point.x + (bmpheight-point.y)*bmpwidth)*4;
     draw(coord);
     SetDIBits( hDc, hImage, 0, bmpheight, bits, &bi, DIB_RGB_COLORS );
     return 1;
@@ -175,15 +181,14 @@ int newImage()
 {
     hDc = CreateCompatibleDC (NULL);
     if(!hDc)printf("No HDC");
-
     hImage = (HBITMAP)LoadImageW(NULL, L"default.bmp", IMAGE_BITMAP, bmpwidth, bmpheight, LR_LOADFROMFILE);
     if(!hImage)printf("No IMAGE");
+
     //Setting basic header info.
     ZeroMemory(&bi, sizeof(BITMAPINFO));
     bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     //Getting header info for BITMAP:
-    if (!GetDIBits(hDc, hImage, 0, 0, NULL, &bi, DIB_RGB_COLORS))
-        return 0;
+    if (!GetDIBits(hDc, hImage, 0, 0, NULL, &bi, DIB_RGB_COLORS))return 0;
     //Checking and adjusting header info:
     if (bi.bmiHeader.biBitCount!=32)
 	{
