@@ -44,7 +44,7 @@ char file_saved=0;
 HWND hBitmap ;
 HBITMAP hImage;
 BITMAPINFO bi;
-int bmpwidth=500, bmpheight=500;
+int bmpwidth=700, bmpheight=700;
 char *bits = NULL;
 int drawing = 0;
 //Paint style
@@ -498,4 +498,9 @@ void save_bitmap(char *path)
     }
     fclose(fi);
     printf("FILE UPLOADED\n");
+}
+
+void save_png(char *path)
+{
+
 }
