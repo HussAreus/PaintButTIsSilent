@@ -43,10 +43,10 @@ int bmpwidth=500, bmpheight=500;
 char *bits = NULL;
 int drawing = 0;
 //Paint style
-int type = CIRCLE_BRUSH;
+int type = TRIANGLE_BRUSH;
 int paintWidth = 20;
 RGBCOLOR paintColor;
-int cordx, cordy;
+int coordCurrent;
 //Main Window
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow)
 {
@@ -226,6 +226,16 @@ void draw(LONG x, LONG y)
             bits[coord+2]=paintColor.r;
         }
     }
+    void errase(long x1, long y1, char oppacity){
+        if(x1<0||x1>=bmpwidth)return;
+        size_t coord =(x1 + (bmpheight-y1)*bmpwidth)*4;
+        if(coord<=bmpheight*bmpwidth*4&&coord>=0){
+            bits[coord]=0;
+            bits[coord+1]=0;
+            bits[coord+2]=0;
+            bits[coord+3]=oppacity
+        }
+    }
     switch(type)
     {
     case DIAMOND_BRUSH:
@@ -249,33 +259,21 @@ void draw(LONG x, LONG y)
         break;
     case TRIANGLE_BRUSH:
         paint(x, y);
-        for(int i=1; i<paintWidth; i++)//triangle verticle lines
+        for(int i=1; i<paintWidth-1; i++)
         {
             paint(x, y-i);
             paint(x, y+i);
-            for(int j=paintWidth; j<paintWidth*2-4; j++)
+            for(int j=paintWidth-1; j<(int)paintWidth*1.5; j++)
             {
                 paint(x, y+j);
             }
-            for(int j=1; j<paintWidth; j++) //triangle inside
+        }
+        for(int i=1; i<floor((double)paintWidth*2.5); i++)
+        {
+            for(int j=1; j<i/2; j++)
             {
-                paint(x+j, y-i);
-                paint(x-j, y-i);
-            }
-            for(int j=1; j<(paintWidth-i*0.5); j++) //triangle mid sides
-            {
-                paint(x-j, y+(i-1));
-                paint(x+j, y+(i-1));
-            }
-            for(int j=1; j<(paintWidth*0.5-i*0.5); j++) //triangle bottom sides
-            {
-                paint(x-j+1-paintWidth, y+i-paintWidth);
-                paint(x+j-1+paintWidth, y+i-paintWidth);
-            }
-            for(int j=1; j<(paintWidth*0.5-i*0.5); j++) //triangle top
-            {
-                paint(x-j, y+i+paintWidth-2);
-                paint(x+j, y+i+paintWidth-2);
+                paint(x+j, y-paintWidth+i);
+                paint(x-j, y-paintWidth+i);
             }
         }
         break;
@@ -297,6 +295,7 @@ void draw(LONG x, LONG y)
             }
 
         }
+        break;
     }
 
 }
