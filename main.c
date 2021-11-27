@@ -4,14 +4,15 @@
 #include <math.h>
 
 //Constants
-#define NEW_FILE 9
+#define NEW_FILE 1
 #define CHANGE_TITLE 2
-#define RED 3
-#define GREEN 4
-#define BLUE 5
-#define YELLOW 6
-#define CYAN 7
-#define PURPLE 8
+#define SAVE_FILE 3
+#define RED 4
+#define GREEN 5
+#define BLUE 6
+#define YELLOW 7
+#define CYAN 8
+#define PURPLE 9
 #define ERRASER 10
 #define BLACK 11
 #define DIAMOND_BRUSH 1
@@ -24,17 +25,21 @@ void newPage(HWND hwnd);
 int newImage();
 int editImage();
 void draw(LONG x, LONG y);
+//File Save Functions
+void save_bitmap(char *path);
+void save_file(HWND hwnd);
 
 typedef struct tagRGB{
     char r, g, b;
 } RGBCOLOR;
-// Global variables
+//Global variables
 //Main Window values
 HMENU hmenu;
 HINSTANCE hInst;
 HDC hDc;
 POINT point;
 int width, height;
+char file_saved=0;
 //Bitmap variables
 HWND hBitmap ;
 HBITMAP hImage;
@@ -44,7 +49,7 @@ char *bits = NULL;
 int drawing = 0;
 //Paint style
 int type = TRIANGLE_BRUSH;
-int paintWidth = 20;
+int paintWidth = 10;
 RGBCOLOR paintColor;
 int coordCurrent;
 //Main Window
@@ -82,8 +87,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
     width/=2;
     height*=0.5;
     paintColor.r = 0;
-    paintColor.g = 255;
-    paintColor.b = 255;
+    paintColor.g = 0;
+    paintColor.b = 0;
 
     // Step 2: Creating the Window
     hwnd = CreateWindowEx(WS_EX_ACCEPTFILES, MainWindowClass,"Paint, but \"t\" is silent",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT, CW_USEDEFAULT, (height*2)+200, (height*1.5)+20, NULL, NULL, hInstance, NULL);
@@ -122,7 +127,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if(point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight)
             {
                 drawing = 1;
-                cordx=point.x+(bmpheight-point.y)*bmpwidth;
+                coordCurrent=point.x+(bmpheight-point.y)*bmpwidth;
             }
 
             break;
@@ -143,6 +148,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 {
                     SetWindowTextW(hwnd, L"benediktasNoobas.bmp");
                     break;
+                }
+                case SAVE_FILE:
+                {
+                    file_saved=1;
+                    save_file(hwnd);
                 }
                 case RED:
                 {
@@ -230,10 +240,10 @@ void draw(LONG x, LONG y)
         if(x1<0||x1>=bmpwidth)return;
         size_t coord =(x1 + (bmpheight-y1)*bmpwidth)*4;
         if(coord<=bmpheight*bmpwidth*4&&coord>=0){
-            bits[coord]=0;
-            bits[coord+1]=0;
-            bits[coord+2]=0;
-            bits[coord+3]=oppacity
+            bits[coord]=255;
+            bits[coord+1]=255;
+            bits[coord+2]=255;
+            bits[coord+3]=oppacity;
         }
     }
     switch(type)
@@ -348,6 +358,25 @@ int newImage()
     return 1;
 }
 
+void save_file(HWND hwnd)
+{
+    OPENFILENAME ofn;
+    char file_name[260];
+    ZeroMemory(&ofn, sizeof(OPENFILENAME));
+
+    ofn.lStructSize = sizeof(OPENFILENAME);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFile = file_name;
+    ofn.lpstrFile[0] = '\0';
+    ofn.nMaxFile = 260;
+    ofn.lpstrFilter = "Bitmap\0*.bmp\0";
+    ofn.nFilterIndex = 1;
+
+    GetOpenFileName(&ofn);
+    save_bitmap(ofn.lpstrFile);
+
+}
+
 void newMenu(HWND hwnd)
 {
     hmenu = CreateMenu();
@@ -355,6 +384,7 @@ void newMenu(HWND hwnd)
     HMENU hFileMenu = CreateMenu();
     AppendMenu(hFileMenu, MF_STRING, NEW_FILE, "New");
     AppendMenu(hFileMenu, MF_STRING, CHANGE_TITLE, "Rename");
+    AppendMenu(hFileMenu, MF_STRING, SAVE_FILE, "Save as");
     AppendMenu(hFileMenu, MF_STRING, RED, "Red");
     AppendMenu(hFileMenu, MF_STRING, GREEN, "Green");
     AppendMenu(hFileMenu, MF_STRING, BLUE, "Blue");
@@ -367,4 +397,105 @@ void newMenu(HWND hwnd)
     AppendMenu(hmenu, MF_POPUP, (UINT_PTR)hFileMenu, "File");
 
     SetMenu(hwnd, hmenu);
+}
+
+void save_bitmap(char *path)
+{
+    FILE *fi;
+    fi = fopen(path, "wb");
+    char bmpPad[3] = {0, 0, 0};
+    int paddingAmount = ((4-(bmpwidth*4)%4)%4);
+
+    int fileHeaderSize = 14;
+    int informationHeaderSize = 40;
+    int fileSize = fileHeaderSize + informationHeaderSize + bmpwidth * bmpheight * 4+ paddingAmount * bmpheight;
+
+    char fileHeader[fileHeaderSize];
+    //File Type. BM stands for bitmap
+    fileHeader[0] = 'B';
+    fileHeader[1] = 'M';
+    //File Size. sizeof(fileSize) = 4. That's why we have to move by a byte to assign it to Unsigned Char (size is 1)
+    fileHeader[2] = fileSize;
+    fileHeader[3] = fileSize>>8;
+    fileHeader[4] = fileSize>>16;
+    fileHeader[5] = fileSize>>24;
+    //Reserved 1. (No idea)
+    fileHeader[6] = 0;
+    fileHeader[7] = 0;
+    //Reserved 2. (No idea as well)
+    fileHeader[8] = 0;
+    fileHeader[9] = 0;
+    //Pixel data offset. Used to determine when the real pixel data is starting.
+    fileHeader[10] = fileHeaderSize + informationHeaderSize;
+    fileHeader[11] = 0;
+    fileHeader[12] = 0;
+    fileHeader[13] = 0;
+
+    unsigned char informationHeader[informationHeaderSize];
+    //Header Size.
+    informationHeader[0] = informationHeaderSize;
+    informationHeader[1] = 0;
+    informationHeader[2] = 0;
+    informationHeader[3] = 0;
+    //Image Width.
+    informationHeader[4] = bmpwidth;
+    informationHeader[5] = bmpwidth>>8;
+    informationHeader[6] = bmpwidth>>16;
+    informationHeader[7] = bmpwidth>>24;
+    //Image Height
+    informationHeader[8] = bmpheight;
+    informationHeader[9] = bmpheight>>8;
+    informationHeader[10] = bmpheight>>16;
+    informationHeader[11] = bmpheight>>24;
+    //Planes
+    informationHeader[12] = 1;
+    informationHeader[13] = 0;
+    //Bits Per Pixel
+    informationHeader[14] = 32;
+    informationHeader[15] = 0;
+    //Compression. None In This Case.
+    informationHeader[16] = 0;
+    informationHeader[17] = 0;
+    informationHeader[18] = 0;
+    informationHeader[19] = 0;
+    //Image Size. No Compression -> Unnecessary.
+    informationHeader[20] = 0;
+    informationHeader[21] = 0;
+    informationHeader[22] = 0;
+    informationHeader[23] = 0;
+    //X Pixels Per Meter.
+    informationHeader[24] = 0;
+    informationHeader[25] = 0;
+    informationHeader[26] = 0;
+    informationHeader[27] = 0;
+    //Y Pixels Per Meter.
+    informationHeader[28] = 0;
+    informationHeader[29] = 0;
+    informationHeader[30] = 0;
+    informationHeader[31] = 0;
+    //Total Colors (if with pallet header)
+    informationHeader[32] = 0;
+    informationHeader[33] = 0;
+    informationHeader[34] = 0;
+    informationHeader[35] = 0;
+    //Important Colors. (No Idea)
+    informationHeader[36] = 0;
+    informationHeader[37] = 0;
+    informationHeader[38] = 0;
+    informationHeader[39] = 0;
+
+    fwrite(fileHeader, fileHeaderSize, 1, fi);
+    fwrite(informationHeader, informationHeaderSize, 1, fi);
+
+    for(int i=0; i<bmpheight; i++)
+    {
+        for(int j=0; j<bmpwidth; j++)
+        {
+            char color[] = {bits[(i*bmpwidth+j)*4], bits[(i*bmpwidth+j)*4+1], bits[(i*bmpwidth+j)*4+2], bits[(i*bmpwidth+j)*4+3]};
+            fwrite(color, 4, 1, fi);
+        }
+        fwrite(bmpPad, paddingAmount, 1, fi);
+    }
+    fclose(fi);
+    printf("FILE UPLOADED\n");
 }
