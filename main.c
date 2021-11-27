@@ -13,14 +13,16 @@
 #define PURPLE 8
 #define ERRASER 10
 #define BLACK 11
-#define PAINT_BRUSH 1
+#define DIAMOND_BRUSH 1
+#define TRIANGLE_BRUSH 2
+#define CIRCLE_BRUSH 3
 // Function Declarations
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void newMenu(HWND hwnd);
 void newPage(HWND hwnd);
 int newImage();
 int editImage();
-void draw(int coord);
+void draw(LONG x, LONG y);
 
 typedef struct tagRGB{
     char r, g, b;
@@ -40,9 +42,10 @@ int bmpwidth=500, bmpheight=500;
 char *bits = NULL;
 int drawing = 0;
 //Paint style
-int type = PAINT_BRUSH;
-int paintWidth = 10;
+int type = TRIANGLE_BRUSH;
+int paintWidth = 20;
 RGBCOLOR paintColor;
+int cordx, cordy;
 //Main Window
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow)
 {
@@ -115,7 +118,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch(msg)
     {
         case WM_LBUTTONDOWN:{
-            if(point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight)drawing = 1;
+            if(point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight)
+            {
+                drawing = 1;
+                cordx=point.x+(bmpheight-point.y)*bmpwidth;
+            }
+
             break;
             }
         case WM_LBUTTONUP:{
@@ -132,7 +140,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 }
                 case CHANGE_TITLE:
                 {
-                    SetWindowTextW(hwnd, L"untitled.bmp");
+                    SetWindowTextW(hwnd, L"benediktasNoobas.bmp");
                     break;
                 }
                 case RED:
@@ -206,9 +214,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-void draw(int coord)
+void draw(LONG x, LONG y)
 {
-    void paint(int coord){
+    void paint(long x1, long y1){
+        if(x1<0||x1>=bmpwidth)return;
+        size_t coord =(x1 + (bmpheight-y1)*bmpwidth)*4;
         if(coord<=bmpheight*bmpwidth*4&&coord>=0){
             bits[coord]=paintColor.b;
             bits[coord+1]=paintColor.g;
@@ -217,7 +227,58 @@ void draw(int coord)
     }
     switch(type)
     {
-    case PAINT_BRUSH:
+    case DIAMOND_BRUSH:
+        paint(x, y);
+        for(int i=1; i<paintWidth; i++)
+        {
+            paint(x, y+i);
+            paint(x, y-i);
+            paint(x-i, y);
+            paint(x+i, y);
+
+            for(int j=1; j<(paintWidth-i); j++)
+            {
+                paint(x-i, y+j);
+                paint(x-i, y-j);
+                paint(x+i, y-j);
+                paint(x+i, y+j);
+            }
+
+        }
+        break;
+    case TRIANGLE_BRUSH:
+        paint(x, y);
+        for(int i=1; i<paintWidth; i++)//triangle verticle lines
+        {
+            paint(x, y-i);
+            paint(x, y+i);
+            for(int j=paintWidth; j<paintWidth*2-4; j++)
+            {
+                paint(x, y+j);
+            }
+            for(int j=1; j<paintWidth; j++) //triangle inside
+            {
+                paint(x+j, y-i);
+                paint(x-j, y-i);
+            }
+            for(int j=1; j<(paintWidth-i*0.5); j++) //triangle mid sides
+            {
+                paint(x-j, y+(i-1));
+                paint(x+j, y+(i-1));
+            }
+            for(int j=1; j<(paintWidth*0.5-i*0.5); j++) //triangle bottom sides
+            {
+                paint(x-j+1-paintWidth, y+i-paintWidth);
+                paint(x+j-1+paintWidth, y+i-paintWidth);
+            }
+            for(int j=1; j<(paintWidth*0.5-i*0.5); j++) //triangle top
+            {
+                paint(x-j, y+i+paintWidth-2);
+                paint(x+j, y+i+paintWidth-2);
+            }
+        }
+        break;
+    /*case CIRCLE_BRUSH:
         paint(coord);
         for(int i=1; i<paintWidth; i++)
         {
@@ -225,7 +286,8 @@ void draw(int coord)
             paint(coord-4*i);
             paint(coord-bmpwidth*4*i);
             paint(coord+bmpwidth*4*i);
-            for(int j=1; j<(paintWidth-i); j++)
+
+            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
             {
                 paint(coord-bmpwidth*4*i+j*4);
                 paint(coord-bmpwidth*4*i-j*4);
@@ -233,7 +295,7 @@ void draw(int coord)
                 paint(coord+bmpwidth*4*i+j*4);
             }
 
-        }
+        }*/
     }
 
 }
@@ -246,8 +308,7 @@ void newPage(HWND hwnd)
 
 int editImage(POINT point)
 {
-    int coord=(point.x + (bmpheight-point.y)*bmpwidth)*4;
-    draw(coord);
+    draw(point.x, point.y);
     SetDIBits( hDc, hImage, 0, bmpheight, bits, &bi, DIB_RGB_COLORS );
     return 1;
 }
