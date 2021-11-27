@@ -3,10 +3,11 @@
 	<windows.h>
 	<winuser.h>
 
-1638022000 source:c:\users\beneb\documents\github\paintbuttissilent\main.c
+1638023503 source:c:\users\beneb\documents\github\paintbuttissilent\main.c
 	<windows.h>
 	<stdlib.h>
 	<stdio.h>
+	<math.h>
 
 1637327796 source:c:\users\beneb\documents\github\paintbuttissilent\attempt.c
 

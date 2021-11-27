@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 //Constants
 #define NEW_FILE 9
@@ -42,7 +43,7 @@ int bmpwidth=500, bmpheight=500;
 char *bits = NULL;
 int drawing = 0;
 //Paint style
-int type = TRIANGLE_BRUSH;
+int type = CIRCLE_BRUSH;
 int paintWidth = 20;
 RGBCOLOR paintColor;
 int cordx, cordy;
@@ -278,24 +279,24 @@ void draw(LONG x, LONG y)
             }
         }
         break;
-    /*case CIRCLE_BRUSH:
-        paint(coord);
+    case CIRCLE_BRUSH:
+        paint(x, y);
         for(int i=1; i<paintWidth; i++)
         {
-            paint(coord+4*i);
-            paint(coord-4*i);
-            paint(coord-bmpwidth*4*i);
-            paint(coord+bmpwidth*4*i);
+            paint(x+i, y);
+            paint(x-i, y);
+            paint(x, y+i);
+            paint(x, y-i);
 
             for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
             {
-                paint(coord-bmpwidth*4*i+j*4);
-                paint(coord-bmpwidth*4*i-j*4);
-                paint(coord+bmpwidth*4*i-j*4);
-                paint(coord+bmpwidth*4*i+j*4);
+                paint(x+j, y-i);
+                paint(x-j, y-i);
+                paint(x-j, y+i);
+                paint(x+j, y+i);
             }
 
-        }*/
+        }
     }
 
 }
