@@ -18,7 +18,9 @@
 #define DIAMOND_BRUSH 1
 #define TRIANGLE_BRUSH 2
 #define CIRCLE_BRUSH 3
+//Color structure
 // Function Declarations
+unsigned int Crc32(char *stream, int offset, int length, unsigned int crc);
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void newMenu(HWND hwnd);
 void newPage(HWND hwnd);
@@ -27,11 +29,12 @@ int editImage();
 void draw(LONG x, LONG y);
 //File Save Functions
 void save_bitmap(char *path);
+void save_png(char *path);
 void save_file(HWND hwnd);
 
-typedef struct tagRGB{
-    char r, g, b;
-} RGBCOLOR;
+typedef struct tagRGBA{
+    unsigned char r, g, b, a;
+} RGBACOLOR;
 //Global variables
 //Main Window values
 HMENU hmenu;
@@ -45,13 +48,18 @@ HWND hBitmap ;
 HBITMAP hImage;
 BITMAPINFO bi;
 int bmpwidth=700, bmpheight=700;
-char *bits = NULL;
-int drawing = 0;
+unsigned char *bits = NULL;
+BOOL drawing = 0;
 //Paint style
-int type = TRIANGLE_BRUSH;
-int paintWidth = 10;
-RGBCOLOR paintColor;
+int paintOppacity=0;
+int type = CIRCLE_BRUSH;
+int paintWidth = 50;
+RGBACOLOR paintColor;
 int coordCurrent;
+//Palette and CRC for PNG
+int paintPaletteSize=1;
+RGBACOLOR paintPalette[256];
+unsigned int crcTable[256];
 //Main Window
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow)
 {
@@ -95,8 +103,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
 
     if(hwnd == NULL)
     {
-        MessageBox(NULL, "Window Creation Failed!", "Error!",
-            MB_ICONEXCLAMATION | MB_OK);
+        MessageBox(NULL, "Window Creation Failed!", "Error!",MB_ICONEXCLAMATION | MB_OK);
         return 0;
     }
 
@@ -115,11 +122,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
 // Step 4: the Window Procedure
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    if(msg==WM_LBUTTONUP)
+    {
+        drawing = 0;
+        return 0;
+    }
     GetCursorPos(&point);
     ScreenToClient(hBitmap, &point);
     if(drawing && point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight){
         editImage(point);
         SendMessageW(hBitmap, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
+        return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     switch(msg)
     {
@@ -129,11 +142,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 drawing = 1;
                 coordCurrent=point.x+(bmpheight-point.y)*bmpwidth;
             }
-
-            break;
-            }
-        case WM_LBUTTONUP:{
-            drawing = 0;
             break;
         }
         case WM_COMMAND:{
@@ -218,6 +226,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             newImage();
             newMenu(hwnd);
             newPage(hwnd);
+            RGBACOLOR rgba;
+            rgba.r = 0;
+            rgba.g = 0;
+            rgba.b = 0;
+            rgba.a = 0;
+            paintPalette[0]= rgba;
             break;
         }
         default:return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -234,16 +248,17 @@ void draw(LONG x, LONG y)
             bits[coord]=paintColor.b;
             bits[coord+1]=paintColor.g;
             bits[coord+2]=paintColor.r;
+            bits[coord+3]=paintOppacity;
         }
     }
-    void errase(long x1, long y1, char oppacity){
+    void errase(long x1, long y1){
         if(x1<0||x1>=bmpwidth)return;
         size_t coord =(x1 + (bmpheight-y1)*bmpwidth)*4;
         if(coord<=bmpheight*bmpwidth*4&&coord>=0){
             bits[coord]=255;
             bits[coord+1]=255;
             bits[coord+2]=255;
-            bits[coord+3]=oppacity;
+            bits[coord+3]=paintOppacity;
         }
     }
     switch(type)
@@ -344,7 +359,7 @@ int newImage()
 	if(bi.bmiHeader.biCompression != BI_RGB && bi.bmiHeader.biCompression != BI_BITFIELDS)printf("SUS");
 	bi.bmiHeader.biCompression = BI_RGB;
     //Allocating required memory based on header provided info:
-    bits = (char*)malloc(bi.bmiHeader.biSizeImage);
+    bits = (unsigned char*)malloc(bi.bmiHeader.biSizeImage);
     if (!bits){
         free( bits );
         return 0;
@@ -363,18 +378,17 @@ void save_file(HWND hwnd)
     OPENFILENAME ofn;
     char file_name[260];
     ZeroMemory(&ofn, sizeof(OPENFILENAME));
-
     ofn.lStructSize = sizeof(OPENFILENAME);
     ofn.hwndOwner = hwnd;
     ofn.lpstrFile = file_name;
-    ofn.lpstrFile[0] = '\0';
+    strcpy(ofn.lpstrFile, "untitled.bmp");
     ofn.nMaxFile = 260;
-    ofn.lpstrFilter = "Bitmap\0*.bmp\0";
+    ofn.lpstrFilter = "Bitmap\0*.bmp\0PNG\0*.png\0";
     ofn.nFilterIndex = 1;
-
     GetOpenFileName(&ofn);
-    save_bitmap(ofn.lpstrFile);
 
+
+    save_bitmap(ofn.lpstrFile);
 }
 
 void newMenu(HWND hwnd)
@@ -393,7 +407,6 @@ void newMenu(HWND hwnd)
     AppendMenu(hFileMenu, MF_STRING, PURPLE, "Purple");
     AppendMenu(hFileMenu, MF_STRING, BLACK, "Black");
     AppendMenu(hFileMenu, MF_STRING, ERRASER, "Erraser");
-
     AppendMenu(hmenu, MF_POPUP, (UINT_PTR)hFileMenu, "File");
 
     SetMenu(hwnd, hmenu);
@@ -502,5 +515,176 @@ void save_bitmap(char *path)
 
 void save_png(char *path)
 {
+    FILE *fi;
+    fi = fopen(path, "wb");
+    int fileHeaderSize = 8;
+    int IHDRsize = 13;
+    int PLTEsize = paintPaletteSize*3;
+    int tRNSsize = paintPaletteSize;
+    int IDATsize = bmpwidth * bmpheight;
 
+
+    unsigned char fileHeader[fileHeaderSize];{
+    // High Bit
+    fileHeader[0] = 137;
+    // File format
+    fileHeader[1] = 'P';
+    fileHeader[2] = 'N';
+    fileHeader[3] = 'G';
+    // Some DOS bullshit
+    fileHeader[4] = 13;
+    fileHeader[5] = 10;
+    fileHeader[6] = 26;
+    fileHeader[7] = 10;
+    }
+
+    unsigned char IHDR[IHDRsize];{
+    // Width.
+    IHDR[0] = bmpwidth>>24;
+    IHDR[1] = bmpwidth>>16;
+    IHDR[2] = bmpwidth>>8;
+    IHDR[3] = bmpwidth;
+    // Height.
+    IHDR[4] = bmpheight>>24;
+    IHDR[5] = bmpheight>>16;
+    IHDR[6] = bmpheight>>8;
+    IHDR[7] = bmpheight;
+    // Bit depth. In this case up to 255 so it's 8 bit.
+    IHDR[8] = 8;
+    // Color type. We want RGBA. If possible palette would be cool...
+    IHDR[9] = 6;
+    // Compression, Filter, Interlace.
+    IHDR[10] = 0;
+    IHDR[11] = 0;
+    IHDR[12] = 0;
+    }
+
+    unsigned char PLTE[PLTEsize];
+    unsigned char tRNS[tRNSsize];
+    for(int i=0; i<paintPaletteSize; i++){
+        PLTE[i*3]=paintPalette[i].r;
+        PLTE[i*3+1]=paintPalette[i].g;
+        PLTE[i*3+2]=paintPalette[i].b;
+        tRNS[i]=paintPalette[i].a;
+    }
+
+    unsigned char IDAT[IDATsize];{
+    for(int i=0; i<IDATsize; i++)
+    {
+        for(int j=0; j<paintPaletteSize; j++)
+        {
+            if(bits[i*4]==paintPalette[j].b&&bits[i*4+1]==paintPalette[j].r&&bits[i*4+2]==paintPalette[j].g&&bits[i*4+3]==paintPalette[j].a)
+            {
+                IDAT[i]=j;
+                break;
+            }
+        }
+    }}
+
+    unsigned char size[4];
+    unsigned char CRC[4];
+    unsigned int crc;
+
+    fwrite(fileHeader, fileHeaderSize, 1, fi);
+    //IHDR
+    size[0]=IHDRsize>>24;
+    size[1]=IHDRsize>>16;
+    size[2]=IHDRsize>>8;
+    size[3]=IHDRsize;
+    fwrite(size, 4, 1, fi);
+    fwrite("IHDR", 4, 1, fi);
+    fwrite(IHDR, IHDRsize, 1, fi);
+    //crc=Crc32("IHDR", 0, 4, 0);
+    crc = 2829168138;
+    CRC[0]=crc>>24;
+    CRC[1]=crc>>16;
+    CRC[2]=crc>>8;
+    CRC[3]=crc;
+    fwrite(CRC, 4, 1, fi);
+    //PLTE
+    size[0]=PLTEsize>>24;
+    size[1]=PLTEsize>>16;
+    size[2]=PLTEsize>>8;
+    size[3]=PLTEsize;
+    fwrite(size, 4, 1, fi);
+    fwrite("PLTE", 4, 1, fi);
+    fwrite(PLTE, PLTEsize, 1, fi);
+    //crc=Crc32("PLTE", 0, 4, 0);
+    crc = 1269336405;
+    CRC[0]=crc>>24;
+    CRC[1]=crc>>16;
+    CRC[2]=crc>>8;
+    CRC[3]=crc;
+    fwrite(CRC, 4, 1, fi);
+    //tRNS
+    size[0]=tRNSsize>>24;
+    size[1]=tRNSsize>>16;
+    size[2]=tRNSsize>>8;
+    size[3]=tRNSsize;
+    fwrite(size, 4, 1, fi);
+    fwrite("tRNS", 4, 1, fi);
+    fwrite(tRNS, tRNSsize, 1, fi);
+    //crc=Crc32("tRNS", 0, 4, 0);
+    crc = 918122700;
+    CRC[0]=crc>>24;
+    CRC[1]=crc>>16;
+    CRC[2]=crc>>8;
+    CRC[3]=crc;
+    fwrite(CRC, 4, 1, fi);
+    //IDAT
+    size[0]=IDATsize>>24;
+    size[1]=IDATsize>>16;
+    size[2]=IDATsize>>8;
+    size[3]=IDATsize;
+    fwrite(size, 4, 1, fi);
+    fwrite("IDAT", 4, 1, fi);
+    fwrite(IDAT, IDATsize, 1, fi);
+    //crc=Crc32("IDAT", 0, 4, 0);
+    crc = 900662814;
+    CRC[0]=crc>>24;
+    CRC[1]=crc>>16;
+    CRC[2]=crc>>8;
+    CRC[3]=crc;
+    fwrite(CRC, 4, 1, fi);
+    //IEND
+    size[0]=0;
+    size[1]=0;
+    size[2]=0;
+    size[3]=0;
+    fwrite(size, 4, 1, fi);
+    fwrite("IEND", 4, 1, fi);
+    //crc=Crc32("IEND", 0, 4, 0);
+    crc = 2923585666;
+    CRC[0]=crc>>24;
+    CRC[1]=crc>>16;
+    CRC[2]=crc>>8;
+    CRC[3]=crc;
+    fwrite(CRC, 4, 1, fi);
+
+
+    fclose(fi);
+    printf("FILE UPLOADED\n");
+
+}
+
+unsigned int Crc32(char *stream, int offset, int length, unsigned int crc)
+{
+    unsigned int c;
+    for(unsigned int n=0; n<=255; n++)
+    {
+        c = n;
+        for(int k=0;k<8;k++){
+            if((c & 1) == 1)
+                c = 0xEDB88320^((c>>1)&0x7FFFFFFF);
+            else
+                c = ((c>>1)&0x7FFFFFFF);
+        }
+        crcTable[n] = c;
+    }
+    c = crc^0xffffffff;
+    int endOffset=offset+length;
+    for(int i=offset;i<endOffset;i++){
+        c = crcTable[(c^stream[i]) & 255]^((c>>8)&0xFFFFFF);
+    }
+    return c^0xffffffff;
 }
