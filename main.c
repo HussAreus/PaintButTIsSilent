@@ -53,7 +53,7 @@ BOOL drawing = 0;
 //Paint style
 int paintOppacity=0;
 int type = CIRCLE_BRUSH;
-int paintWidth = 50;
+int paintWidth = 10;
 RGBACOLOR paintColor;
 int coordCurrent;
 //Palette and CRC for PNG
