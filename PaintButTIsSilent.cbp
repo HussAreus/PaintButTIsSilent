@@ -36,7 +36,7 @@
 			<Add library="user32" />
 			<Add library="kernel32" />
 			<Add library="comctl32" />
-			<Add library="../../../../../MinGW/lib/libcomdlg32.a" />
+			<Add library="E:/CodeBlocks/MinGW/x86_64-w64-mingw32/lib/libcomdlg32.a" />
 		</Linker>
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />

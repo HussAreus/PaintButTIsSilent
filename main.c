@@ -16,8 +16,11 @@
 #define ERRASER 10
 #define BLACK 11
 #define DIAMOND_BRUSH 1
+#define DIAMOND_BRUSH_BUTTON 12
 #define TRIANGLE_BRUSH 2
+#define TRIANGLE_BRUSH_BUTTON 13
 #define CIRCLE_BRUSH 3
+#define CIRCLE_BRUSH_BUTTON 14
 //Color structure
 // Function Declarations
 unsigned int Crc32(char *stream, int offset, int length, unsigned int crc);
@@ -35,7 +38,8 @@ void save_file(HWND hwnd);
 typedef struct tagRGBA{
     unsigned char r, g, b, a;
 } RGBACOLOR;
-//Global variables
+
+//////Global variables//////
 //Main Window values
 HMENU hmenu;
 HINSTANCE hInst;
@@ -43,6 +47,7 @@ HDC hDc;
 POINT point;
 int width, height;
 char file_saved=0;
+
 //Bitmap variables
 HWND hBitmap ;
 HBITMAP hImage;
@@ -50,16 +55,20 @@ BITMAPINFO bi;
 int bmpwidth=700, bmpheight=700;
 unsigned char *bits = NULL;
 BOOL drawing = 0;
+
 //Paint style
 int paintOppacity=0;
 int type = CIRCLE_BRUSH;
-int paintWidth = 10;
+int paintWidth = 20;
 RGBACOLOR paintColor;
 int coordCurrent;
+
 //Palette and CRC for PNG
 int paintPaletteSize=1;
 RGBACOLOR paintPalette[256];
 unsigned int crcTable[256];
+
+
 //Main Window
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow)
 {
@@ -70,7 +79,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
     HWND hwnd;
     MSG Msg;
 
-    //Step 1: Registering the Window Class
     wc.cbSize        = sizeof(WNDCLASSEX);
     wc.style         = 0;
     wc.lpfnWndProc   = WndProc;
@@ -98,7 +106,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
     paintColor.g = 0;
     paintColor.b = 0;
 
-    // Step 2: Creating the Window
     hwnd = CreateWindowEx(WS_EX_ACCEPTFILES, MainWindowClass,"Paint, but \"t\" is silent",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT, CW_USEDEFAULT, (height*2)+200, (height*1.5)+20, NULL, NULL, hInstance, NULL);
 
     if(hwnd == NULL)
@@ -110,7 +117,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 
-    // Step 3: The Message Loop
     while(GetMessage(&Msg, NULL, 0, 0) > 0)
     {
         TranslateMessage(&Msg);
@@ -119,7 +125,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,
     return Msg.wParam;
 }
 
-// Step 4: the Window Procedure
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if(msg==WM_LBUTTONUP)
@@ -161,6 +166,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 {
                     file_saved=1;
                     save_file(hwnd);
+                }
+                case CIRCLE_BRUSH_BUTTON:
+                {
+                    type=CIRCLE_BRUSH;
+                    break;
+                }
+                case TRIANGLE_BRUSH_BUTTON:
+                {
+                    type=TRIANGLE_BRUSH;
+                    break;
+                }
+                case DIAMOND_BRUSH_BUTTON:
+                {
+                    type=DIAMOND_BRUSH;
+                    break;
                 }
                 case RED:
                 {
@@ -327,7 +347,13 @@ void draw(LONG x, LONG y)
 
 void newPage(HWND hwnd)
 {
-    hBitmap = CreateWindowW(L"Static", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP, 5, 5, bmpwidth, bmpheight/2, hwnd, NULL, NULL, NULL);
+    CreateWindowW(L"Static", NULL, WS_VISIBLE | WS_CHILD | WS_THICKFRAME, 0, 0, 720, 70, hwnd, NULL, NULL, NULL);
+
+    CreateWindowW(L"Button", NULL, WS_VISIBLE | WS_CHILD, 5, 5, 30, 30, hwnd, (HMENU)CIRCLE_BRUSH_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", NULL, WS_VISIBLE | WS_CHILD, 5, 35, 30, 30, hwnd, (HMENU)TRIANGLE_BRUSH_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", NULL, WS_VISIBLE | WS_CHILD, 35, 5, 30, 30, hwnd, (HMENU)DIAMOND_BRUSH_BUTTON, NULL, NULL);
+
+    hBitmap = CreateWindowW(L"Static", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP | WS_THICKFRAME, 5, 75, bmpwidth, bmpheight, hwnd, NULL, NULL, NULL);
     SendMessageW(hBitmap, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
 }
 
