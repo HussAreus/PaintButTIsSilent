@@ -36,11 +36,15 @@
 			<Add library="user32" />
 			<Add library="kernel32" />
 			<Add library="comctl32" />
-			<Add library="E:/CodeBlocks/MinGW/x86_64-w64-mingw32/lib/libcomdlg32.a" />
+			<Add library="C:/Program Files (x86)/CodeBlocks/MinGW/lib/libcomdlg32.a" />
 		</Linker>
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Extensions />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
 	</Project>
 </CodeBlocks_project_file>

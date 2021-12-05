@@ -15,14 +15,14 @@
 #define PURPLE 9
 #define ERRASER 10
 #define BLACK 11
-#define DIAMOND_BRUSH 1
-#define DIAMOND_BRUSH_BUTTON 12
-#define TRIANGLE_BRUSH 2
-#define TRIANGLE_BRUSH_BUTTON 13
-#define CIRCLE_BRUSH 3
-#define CIRCLE_BRUSH_BUTTON 14
-#define LINE_TOOL 4
-#define LINE_TOOL_BUTTON 15
+#define DIAMOND_BRUSH 101
+#define DIAMOND_BRUSH_BUTTON 201
+#define TRIANGLE_BRUSH 102
+#define TRIANGLE_BRUSH_BUTTON 202
+#define CIRCLE_BRUSH 103
+#define CIRCLE_BRUSH_BUTTON 203
+#define LINE_TOOL 104
+#define LINE_TOOL_BUTTON 204
 //Color structure
 // Function Declarations
 unsigned int Crc32(char *stream, int offset, int length, unsigned int crc);
@@ -61,9 +61,10 @@ BOOL drawing = 0;
 //Paint style
 int paintOppacity=0;
 int type = LINE_TOOL;
-int paintWidth = 20;
+int paintWidth = 3;
 RGBACOLOR paintColor;
-int coordCurrent;
+POINT coordStart;
+POINT coordEnd;
 
 //Palette and CRC for PNG
 int paintPaletteSize=1;
@@ -131,7 +132,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if(msg==WM_LBUTTONUP)
     {
-        drawing = 0;
+
+        if(type==LINE_TOOL)
+        {
+            coordEnd=point;
+            printf("%d, %d: %d, %d\n", coordStart.x, coordStart.y, coordEnd.x, coordEnd.y);
+            drawing = 1;
+        }
+        else
+        {
+            drawing = 0;
+        }
         return 0;
     }
     GetCursorPos(&point);
@@ -139,6 +150,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     if(drawing && point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight){
         editImage(point);
         SendMessageW(hBitmap, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
+        if (type == LINE_TOOL)
+        {
+            drawing = 0;
+        }
         return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     switch(msg)
@@ -146,8 +161,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_LBUTTONDOWN:{
             if(point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight)
             {
-                drawing = 1;
-                coordCurrent=point.x+(bmpheight-point.y)*bmpwidth;
+                if(type==LINE_TOOL)
+                {
+                    coordStart=point;
+                }
+                else
+                {
+                    drawing=1;
+                }
             }
             break;
         }
@@ -182,6 +203,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 case DIAMOND_BRUSH_BUTTON:
                 {
                     type=DIAMOND_BRUSH;
+                    break;
+                }
+                case LINE_TOOL_BUTTON:
+                {
+                    type=LINE_TOOL;
                     break;
                 }
                 case RED:
@@ -346,28 +372,162 @@ void draw(LONG x, LONG y)
 
     case LINE_TOOL:
         {
-            int lineX=x, lineY=y, cofX=1, cofY=2, test=1;
-            while(test==1)
+            float y, x, length, height;
+            float change;
+            length=coordEnd.x-coordStart.x;
+            height=coordEnd.y-coordStart.y;
+            if (length*length>height*height)
             {
-                paint(lineX, lineY);
-                for(int i=1; i<paintWidth; i++)
+                if(coordEnd.x>coordStart.x)
                 {
-                    paint(lineX+i, lineY);
-                    paint(lineX-i, lineY);
-                    paint(lineX, lineY+i);
-                    paint(lineX, lineY-i);
-
-                    for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
+                    y=coordStart.y;
+                    change=height/length;
+                    for(int x=coordStart.x; x<coordEnd.x; x++)
                     {
-                        paint(lineX+j, lineY-i);
-                        paint(lineX-j, lineY-i);
-                        paint(lineX-j, lineY+i);
-                        paint(lineX+j, lineY+i);
+                        paint(x, y);
+                        for(int i=1; i<paintWidth; i++)
+                        {
+                            paint(x+i, y);
+                            paint(x-i, y);
+                            paint(x, y+i);
+                            paint(x, y-i);
+
+                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
+                            {
+                                paint(x+j, y-i);
+                                paint(x-j, y-i);
+                                paint(x-j, y+i);
+                                paint(x+j, y+i);
+                            }
+                        }
+                        y=y+change;
                     }
                 }
-                lineX=lineX+lineX;
-                lineY=lineY*cofY;
+                else if(coordEnd.x<coordStart.x)
+                {
+                    y=coordEnd.y;
+                    change=height/length;
+                    for(int x=coordEnd.x; x<coordStart.x; x++)
+                    {
+                        paint(x, y);
+                        for(int i=1; i<paintWidth; i++)
+                        {
+                            paint(x+i, y);
+                            paint(x-i, y);
+                            paint(x, y+i);
+                            paint(x, y-i);
 
+                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
+                            {
+                                paint(x+j, y-i);
+                                paint(x-j, y-i);
+                                paint(x-j, y+i);
+                                paint(x+j, y+i);
+                            }
+                        }
+                        y=y+change;
+                    }
+                }
+                else
+                {
+                    y=coordStart.y;
+                    for(int x=coordEnd.x; x<coordStart.x; x++)
+                    {
+                        paint(x, y);
+                        for(int i=1; i<paintWidth; i++)
+                        {
+                            paint(x+i, y);
+                            paint(x-i, y);
+                            paint(x, y+i);
+                            paint(x, y-i);
+
+                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
+                            {
+                                paint(x+j, y-i);
+                                paint(x-j, y-i);
+                                paint(x-j, y+i);
+                                paint(x+j, y+i);
+                            }
+                        }
+
+                }
+
+            }
+            else
+            {
+                if(coordEnd.y>coordStart.y)
+                {
+                    x=coordStart.x;
+                    change=length/height;
+                    for(int y=coordStart.y; y<coordEnd.y; y++)
+                    {
+                        paint(x, y);
+                        for(int i=1; i<paintWidth; i++)
+                        {
+                            paint(x+i, y);
+                            paint(x-i, y);
+                            paint(x, y+i);
+                            paint(x, y-i);
+
+                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
+                            {
+                                paint(x+j, y-i);
+                                paint(x-j, y-i);
+                                paint(x-j, y+i);
+                                paint(x+j, y+i);
+                            }
+                        }
+                        x=x+change;
+                    }
+                }
+                else if(coordEnd.y<coordStart.y)
+                {
+                    x=coordEnd.x;
+                    change=length/height;
+                    for(int y=coordEnd.y; y<coordStart.y; y++)
+                    {
+                        paint(x, y);
+                        for(int i=1; i<paintWidth; i++)
+                        {
+                            paint(x+i, y);
+                            paint(x-i, y);
+                            paint(x, y+i);
+                            paint(x, y-i);
+
+                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
+                            {
+                                paint(x+j, y-i);
+                                paint(x-j, y-i);
+                                paint(x-j, y+i);
+                                paint(x+j, y+i);
+                            }
+                        }
+                        x=x+change;
+                    }
+                }
+                else
+                {
+                    x=coordStart.x;
+                    for(int y=coordEnd.y; y<coordStart.y; y++)
+                    {
+                        paint(x, y);
+                        for(int i=1; i<paintWidth; i++)
+                        {
+                            paint(x+i, y);
+                            paint(x-i, y);
+                            paint(x, y+i);
+                            paint(x, y-i);
+
+                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
+                            {
+                                paint(x+j, y-i);
+                                paint(x-j, y-i);
+                                paint(x-j, y+i);
+                                paint(x+j, y+i);
+                            }
+                        }
+
+                }
             }
             break;
 
@@ -381,9 +541,10 @@ void newPage(HWND hwnd)
 {
     CreateWindowW(L"Static", NULL, WS_VISIBLE | WS_CHILD | WS_THICKFRAME, 0, 0, 720, 70, hwnd, NULL, NULL, NULL);
 
-    CreateWindowW(L"Button", NULL, WS_VISIBLE | WS_CHILD, 5, 5, 30, 30, hwnd, (HMENU)CIRCLE_BRUSH_BUTTON, NULL, NULL);
-    CreateWindowW(L"Button", NULL, WS_VISIBLE | WS_CHILD, 5, 35, 30, 30, hwnd, (HMENU)TRIANGLE_BRUSH_BUTTON, NULL, NULL);
-    CreateWindowW(L"Button", NULL, WS_VISIBLE | WS_CHILD, 35, 5, 30, 30, hwnd, (HMENU)DIAMOND_BRUSH_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", L"cir", WS_VISIBLE | WS_CHILD, 5, 5, 30, 30, hwnd, (HMENU)CIRCLE_BRUSH_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", L"tri", WS_VISIBLE | WS_CHILD, 5, 35, 30, 30, hwnd, (HMENU)TRIANGLE_BRUSH_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", L"dia", WS_VISIBLE | WS_CHILD, 35, 5, 30, 30, hwnd, (HMENU)DIAMOND_BRUSH_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", L"line", WS_VISIBLE | WS_CHILD, 35, 35, 30, 30, hwnd, (HMENU)LINE_TOOL_BUTTON, NULL, NULL); //BS_ICON
 
     hBitmap = CreateWindowW(L"Static", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP | WS_THICKFRAME, 5, 75, bmpwidth, bmpheight, hwnd, NULL, NULL, NULL);
     SendMessageW(hBitmap, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
