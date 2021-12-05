@@ -23,6 +23,10 @@
 #define CIRCLE_BRUSH_BUTTON 203
 #define LINE_TOOL 104
 #define LINE_TOOL_BUTTON 204
+#define SQUARE_BRUSH 105
+#define SQUARE_BRUSH_BUTTON 205
+#define SQUARE_TOOL 106
+#define SQUARE_TOOL_BUTTON 206
 //Color structure
 // Function Declarations
 unsigned int Crc32(char *stream, int offset, int length, unsigned int crc);
@@ -60,8 +64,8 @@ BOOL drawing = 0;
 
 //Paint style
 int paintOppacity=0;
-int type = LINE_TOOL;
-int paintWidth = 3;
+int type = CIRCLE_BRUSH;
+int paintWidth = 5;
 RGBACOLOR paintColor;
 POINT coordStart;
 POINT coordEnd;
@@ -133,10 +137,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     if(msg==WM_LBUTTONUP)
     {
 
-        if(type==LINE_TOOL)
+        if(type==LINE_TOOL || type == SQUARE_TOOL)
         {
             coordEnd=point;
-            printf("%d, %d: %d, %d\n", coordStart.x, coordStart.y, coordEnd.x, coordEnd.y);
             drawing = 1;
         }
         else
@@ -150,7 +153,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     if(drawing && point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight){
         editImage(point);
         SendMessageW(hBitmap, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
-        if (type == LINE_TOOL)
+        if (type == LINE_TOOL || type == SQUARE_TOOL)
         {
             drawing = 0;
         }
@@ -161,7 +164,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_LBUTTONDOWN:{
             if(point.x>=0 && point.x<=bmpwidth && point.y>=0 && point.y<=bmpheight)
             {
-                if(type==LINE_TOOL)
+                if(type==LINE_TOOL || type == SQUARE_TOOL)
                 {
                     coordStart=point;
                 }
@@ -208,6 +211,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 case LINE_TOOL_BUTTON:
                 {
                     type=LINE_TOOL;
+                    break;
+                }
+                case SQUARE_BRUSH_BUTTON:
+                {
+                    type=SQUARE_BRUSH;
+                    break;
+                }
+                case SQUARE_TOOL_BUTTON:
+                {
+                    type=SQUARE_TOOL;
                     break;
                 }
                 case RED:
@@ -311,6 +324,26 @@ void draw(LONG x, LONG y)
     }
     switch(type)
     {
+    case SQUARE_BRUSH:
+        paint(x,y);
+        for(int i=1; i<paintWidth; i++)
+        {
+            paint(x+i, y);
+            paint(x-i, y);
+            paint(x, y+i);
+            paint(x, y-i);
+
+            for(int j=1; j<paintWidth; j++)
+            {
+                paint(x-i, y+j);
+                paint(x-i, y-j);
+                paint(x+i, y-j);
+                paint(x+i, y+j);
+            }
+        }
+
+        break;
+
     case DIAMOND_BRUSH:
         paint(x, y);
         for(int i=1; i<paintWidth; i++)
@@ -330,6 +363,7 @@ void draw(LONG x, LONG y)
 
         }
         break;
+
     case TRIANGLE_BRUSH:
         paint(x, y);
         for(int i=1; i<paintWidth-1; i++)
@@ -372,166 +406,184 @@ void draw(LONG x, LONG y)
 
     case LINE_TOOL:
         {
-            float y, x, length, height;
-            float change;
+            float y, x, length, height, placeHolder;
+            float change=0;
             length=coordEnd.x-coordStart.x;
             height=coordEnd.y-coordStart.y;
+
             if (length*length>height*height)
             {
-                if(coordEnd.x>coordStart.x)
+                if(length != 0)
                 {
-                    y=coordStart.y;
                     change=height/length;
-                    for(int x=coordStart.x; x<coordEnd.x; x++)
-                    {
-                        paint(x, y);
-                        for(int i=1; i<paintWidth; i++)
-                        {
-                            paint(x+i, y);
-                            paint(x-i, y);
-                            paint(x, y+i);
-                            paint(x, y-i);
-
-                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
-                            {
-                                paint(x+j, y-i);
-                                paint(x-j, y-i);
-                                paint(x-j, y+i);
-                                paint(x+j, y+i);
-                            }
-                        }
-                        y=y+change;
-                    }
                 }
-                else if(coordEnd.x<coordStart.x)
+                if(coordEnd.x<coordStart.x)
                 {
-                    y=coordEnd.y;
-                    change=height/length;
-                    for(int x=coordEnd.x; x<coordStart.x; x++)
-                    {
-                        paint(x, y);
-                        for(int i=1; i<paintWidth; i++)
-                        {
-                            paint(x+i, y);
-                            paint(x-i, y);
-                            paint(x, y+i);
-                            paint(x, y-i);
-
-                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
-                            {
-                                paint(x+j, y-i);
-                                paint(x-j, y-i);
-                                paint(x-j, y+i);
-                                paint(x+j, y+i);
-                            }
-                        }
-                        y=y+change;
-                    }
+                    placeHolder=coordEnd.x;
+                    coordEnd.x=coordStart.x;
+                    coordStart.x=placeHolder;
+                    placeHolder=coordEnd.y;
+                    coordEnd.y=coordStart.y;
+                    coordStart.y=placeHolder;
                 }
-                else
+                y=coordStart.y;
+                change=height/length;
+                for(int x=coordStart.x; x<coordEnd.x; x++)
                 {
-                    y=coordStart.y;
-                    for(int x=coordEnd.x; x<coordStart.x; x++)
+                    paint(x, y);
+                    for(int i=1; i<paintWidth; i++)
                     {
-                        paint(x, y);
-                        for(int i=1; i<paintWidth; i++)
+                        paint(x+i, y);
+                        paint(x-i, y);
+                        paint(x, y+i);
+                        paint(x, y-i);
+
+                        for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
                         {
-                            paint(x+i, y);
-                            paint(x-i, y);
-                            paint(x, y+i);
-                            paint(x, y-i);
-
-                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
-                            {
-                                paint(x+j, y-i);
-                                paint(x-j, y-i);
-                                paint(x-j, y+i);
-                                paint(x+j, y+i);
-                            }
+                            paint(x+j, y-i);
+                            paint(x-j, y-i);
+                            paint(x-j, y+i);
+                            paint(x+j, y+i);
                         }
-
+                    }
+                    y=y+change;
                 }
 
             }
             else
             {
-                if(coordEnd.y>coordStart.y)
+                if(height != 0)
                 {
-                    x=coordStart.x;
                     change=length/height;
-                    for(int y=coordStart.y; y<coordEnd.y; y++)
-                    {
-                        paint(x, y);
-                        for(int i=1; i<paintWidth; i++)
-                        {
-                            paint(x+i, y);
-                            paint(x-i, y);
-                            paint(x, y+i);
-                            paint(x, y-i);
-
-                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
-                            {
-                                paint(x+j, y-i);
-                                paint(x-j, y-i);
-                                paint(x-j, y+i);
-                                paint(x+j, y+i);
-                            }
-                        }
-                        x=x+change;
-                    }
                 }
-                else if(coordEnd.y<coordStart.y)
+                if(coordEnd.y<coordStart.y)
                 {
-                    x=coordEnd.x;
-                    change=length/height;
-                    for(int y=coordEnd.y; y<coordStart.y; y++)
-                    {
-                        paint(x, y);
-                        for(int i=1; i<paintWidth; i++)
-                        {
-                            paint(x+i, y);
-                            paint(x-i, y);
-                            paint(x, y+i);
-                            paint(x, y-i);
-
-                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
-                            {
-                                paint(x+j, y-i);
-                                paint(x-j, y-i);
-                                paint(x-j, y+i);
-                                paint(x+j, y+i);
-                            }
-                        }
-                        x=x+change;
-                    }
+                    placeHolder=coordEnd.x;
+                    coordEnd.x=coordStart.x;
+                    coordStart.x=placeHolder;
+                    placeHolder=coordEnd.y;
+                    coordEnd.y=coordStart.y;
+                    coordStart.y=placeHolder;
                 }
-                else
+                x=coordStart.x;
+                for(int y=coordStart.y; y<coordEnd.y; y++)
                 {
-                    x=coordStart.x;
-                    for(int y=coordEnd.y; y<coordStart.y; y++)
+                    paint(x, y);
+                    for(int i=1; i<paintWidth; i++)
                     {
-                        paint(x, y);
-                        for(int i=1; i<paintWidth; i++)
+                        paint(x+i, y);
+                        paint(x-i, y);
+                        paint(x, y+i);
+                        paint(x, y-i);
+
+                        for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
                         {
-                            paint(x+i, y);
-                            paint(x-i, y);
-                            paint(x, y+i);
-                            paint(x, y-i);
-
-                            for(int j=1; j<(sqrt(pow(paintWidth,2)-pow(i,2))); j++)
-                            {
-                                paint(x+j, y-i);
-                                paint(x-j, y-i);
-                                paint(x-j, y+i);
-                                paint(x+j, y+i);
-                            }
+                            paint(x+j, y-i);
+                            paint(x-j, y-i);
+                            paint(x-j, y+i);
+                            paint(x+j, y+i);
                         }
-
+                    }
+                    x=x+change;
                 }
             }
             break;
 
         }
+
+    case SQUARE_TOOL:
+        {
+            int x, y, height, width, blabla;
+            if(coordEnd.x<coordStart.x)
+            {
+                blabla=coordEnd.x;
+                coordEnd.x=coordStart.x;
+                coordStart.x=blabla;
+            }
+            if(coordEnd.y<coordStart.y)
+            {
+                blabla=coordEnd.y;
+                coordEnd.y=coordStart.y;
+                coordStart.y=blabla;
+            }
+            for(int x=coordStart.x; x<coordEnd.x; x++)
+                {
+                    y=coordStart.y;
+                    paint(x,y);
+                    for(int i=1; i<paintWidth; i++)
+                    {
+                        paint(x+i, y);
+                        paint(x-i, y);
+                        paint(x, y+i);
+                        paint(x, y-i);
+
+                        for(int j=1; j<paintWidth; j++)
+                        {
+                            paint(x-i, y+j);
+                            paint(x-i, y-j);
+                            paint(x+i, y-j);
+                            paint(x+i, y+j);
+                        }
+                    }
+                    y=coordEnd.y;
+                    paint(x,y);
+                    for(int i=1; i<paintWidth; i++)
+                    {
+                        paint(x+i, y);
+                        paint(x-i, y);
+                        paint(x, y+i);
+                        paint(x, y-i);
+
+                        for(int j=1; j<paintWidth; j++)
+                        {
+                            paint(x-i, y+j);
+                            paint(x-i, y-j);
+                            paint(x+i, y-j);
+                            paint(x+i, y+j);
+                        }
+                    }
+                }
+            for(int y=coordStart.y; y<coordEnd.y; y++)
+            {
+                x=coordStart.x;
+                paint(x,y);
+                for(int i=1; i<paintWidth; i++)
+                {
+                    paint(x+i, y);
+                    paint(x-i, y);
+                    paint(x, y+i);
+                    paint(x, y-i);
+
+                    for(int j=1; j<paintWidth; j++)
+                    {
+                        paint(x-i, y+j);
+                        paint(x-i, y-j);
+                        paint(x+i, y-j);
+                        paint(x+i, y+j);
+                    }
+                }
+                x=coordEnd.x;
+                paint(x,y);
+                for(int i=1; i<paintWidth; i++)
+                {
+                    paint(x+i, y);
+                    paint(x-i, y);
+                    paint(x, y+i);
+                    paint(x, y-i);
+
+                    for(int j=1; j<paintWidth; j++)
+                    {
+                        paint(x-i, y+j);
+                        paint(x-i, y-j);
+                        paint(x+i, y-j);
+                        paint(x+i, y+j);
+                    }
+                }
+
+            }
+            break;
+        }
+
 
     }
 
@@ -545,6 +597,8 @@ void newPage(HWND hwnd)
     CreateWindowW(L"Button", L"tri", WS_VISIBLE | WS_CHILD, 5, 35, 30, 30, hwnd, (HMENU)TRIANGLE_BRUSH_BUTTON, NULL, NULL);
     CreateWindowW(L"Button", L"dia", WS_VISIBLE | WS_CHILD, 35, 5, 30, 30, hwnd, (HMENU)DIAMOND_BRUSH_BUTTON, NULL, NULL);
     CreateWindowW(L"Button", L"line", WS_VISIBLE | WS_CHILD, 35, 35, 30, 30, hwnd, (HMENU)LINE_TOOL_BUTTON, NULL, NULL); //BS_ICON
+    CreateWindowW(L"Button", L"sqr", WS_VISIBLE | WS_CHILD, 65, 35, 30, 30, hwnd, (HMENU)SQUARE_BRUSH_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", L"sqrt", WS_VISIBLE | WS_CHILD, 65, 5, 30, 30, hwnd, (HMENU)SQUARE_TOOL_BUTTON, NULL, NULL);
 
     hBitmap = CreateWindowW(L"Static", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP | WS_THICKFRAME, 5, 75, bmpwidth, bmpheight, hwnd, NULL, NULL, NULL);
     SendMessageW(hBitmap, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
