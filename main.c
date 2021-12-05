@@ -27,6 +27,10 @@
 #define SQUARE_BRUSH_BUTTON 205
 #define SQUARE_TOOL 106
 #define SQUARE_TOOL_BUTTON 206
+#define PAINTWIDTH5 301
+#define PAINTWIDTH10 302
+#define PAINTWIDTH25 303
+#define PAINTWIDTH50 304
 //Color structure
 // Function Declarations
 unsigned int Crc32(char *stream, int offset, int length, unsigned int crc);
@@ -185,7 +189,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 }
                 case CHANGE_TITLE:
                 {
-                    SetWindowTextW(hwnd, L"benediktasNoobas.bmp");
+                    SetWindowTextW(hwnd, L"progPagIsTheBestPag.bmp");
                     break;
                 }
                 case SAVE_FILE:
@@ -277,6 +281,26 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     paintColor.r = 255;
                     paintColor.g = 255;
                     paintColor.b = 255;
+                    break;
+                }
+                case PAINTWIDTH5:
+                {
+                    paintWidth=5;
+                    break;
+                }
+                case PAINTWIDTH10:
+                {
+                    paintWidth=10;
+                    break;
+                }
+                case PAINTWIDTH25:
+                {
+                    paintWidth=25;
+                    break;
+                }
+                case PAINTWIDTH50:
+                {
+                    paintWidth=50;
                     break;
                 }
                 default:break;
@@ -591,14 +615,28 @@ void draw(LONG x, LONG y)
 
 void newPage(HWND hwnd)
 {
-    CreateWindowW(L"Static", NULL, WS_VISIBLE | WS_CHILD | WS_THICKFRAME, 0, 0, 720, 70, hwnd, NULL, NULL, NULL);
+    CreateWindowW(L"Static", NULL, WS_VISIBLE | WS_CHILD | WS_THICKFRAME, 0, 0, 720, 70, hwnd, NULL, NULL, NULL);//BS_ICON
 
     CreateWindowW(L"Button", L"cir", WS_VISIBLE | WS_CHILD, 5, 5, 30, 30, hwnd, (HMENU)CIRCLE_BRUSH_BUTTON, NULL, NULL);
     CreateWindowW(L"Button", L"tri", WS_VISIBLE | WS_CHILD, 5, 35, 30, 30, hwnd, (HMENU)TRIANGLE_BRUSH_BUTTON, NULL, NULL);
     CreateWindowW(L"Button", L"dia", WS_VISIBLE | WS_CHILD, 35, 5, 30, 30, hwnd, (HMENU)DIAMOND_BRUSH_BUTTON, NULL, NULL);
-    CreateWindowW(L"Button", L"line", WS_VISIBLE | WS_CHILD, 35, 35, 30, 30, hwnd, (HMENU)LINE_TOOL_BUTTON, NULL, NULL); //BS_ICON
-    CreateWindowW(L"Button", L"sqr", WS_VISIBLE | WS_CHILD, 65, 35, 30, 30, hwnd, (HMENU)SQUARE_BRUSH_BUTTON, NULL, NULL);
-    CreateWindowW(L"Button", L"sqrt", WS_VISIBLE | WS_CHILD, 65, 5, 30, 30, hwnd, (HMENU)SQUARE_TOOL_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", L"line", WS_VISIBLE | WS_CHILD, 35, 35, 30, 30, hwnd, (HMENU)LINE_TOOL_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", L"sqr", WS_VISIBLE | WS_CHILD, 65, 5, 30, 30, hwnd, (HMENU)SQUARE_BRUSH_BUTTON, NULL, NULL);
+    CreateWindowW(L"Button", L"sqrt", WS_VISIBLE | WS_CHILD, 65, 35, 30, 30, hwnd, (HMENU)SQUARE_TOOL_BUTTON, NULL, NULL);
+
+    CreateWindowW(L"Button", L"Black", WS_VISIBLE | WS_CHILD, 110, 5, 50, 30, hwnd, (HMENU)BLACK, NULL, NULL);
+    CreateWindowW(L"Button", L"Eraser", WS_VISIBLE | WS_CHILD, 110, 35, 50, 30, hwnd, (HMENU)ERRASER, NULL, NULL);
+    CreateWindowW(L"Button", L"Gre", WS_VISIBLE | WS_CHILD, 160, 5, 30, 30, hwnd, (HMENU)GREEN, NULL, NULL);
+    CreateWindowW(L"Button", L"Yel", WS_VISIBLE | WS_CHILD, 160, 35, 30, 30, hwnd, (HMENU)YELLOW, NULL, NULL);
+    CreateWindowW(L"Button", L"Cyan", WS_VISIBLE | WS_CHILD, 190, 5, 40, 30, hwnd, (HMENU)CYAN, NULL, NULL);
+    CreateWindowW(L"Button", L"Purp", WS_VISIBLE | WS_CHILD, 190, 35, 40, 30, hwnd, (HMENU)PURPLE, NULL, NULL);
+    CreateWindowW(L"Button", L"Red", WS_VISIBLE | WS_CHILD, 230, 5, 40, 30, hwnd, (HMENU)RED, NULL, NULL);
+    CreateWindowW(L"Button", L"Blue", WS_VISIBLE | WS_CHILD, 230, 35, 40, 30, hwnd, (HMENU)BLUE, NULL, NULL);
+
+    CreateWindowW(L"Button", L"5", WS_VISIBLE | WS_CHILD, 280, 5, 30, 30, hwnd, (HMENU)PAINTWIDTH5, NULL, NULL);
+    CreateWindowW(L"Button", L"10", WS_VISIBLE | WS_CHILD, 280, 35, 30, 30, hwnd, (HMENU)PAINTWIDTH10, NULL, NULL);
+    CreateWindowW(L"Button", L"25", WS_VISIBLE | WS_CHILD, 310, 5, 30, 30, hwnd, (HMENU)PAINTWIDTH25, NULL, NULL);
+    CreateWindowW(L"Button", L"50", WS_VISIBLE | WS_CHILD, 310, 35, 30, 30, hwnd, (HMENU)PAINTWIDTH50, NULL, NULL);
 
     hBitmap = CreateWindowW(L"Static", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP | WS_THICKFRAME, 5, 75, bmpwidth, bmpheight, hwnd, NULL, NULL, NULL);
     SendMessageW(hBitmap, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
